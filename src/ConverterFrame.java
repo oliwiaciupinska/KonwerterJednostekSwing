@@ -7,12 +7,13 @@ public class ConverterFrame extends JFrame {
     private JTextField inputField;
     private JLabel resultLabel;
     private JComboBox<String> unitBox;
+
     private JTable historyTable;
     private DefaultTableModel tableModel;
 
     public ConverterFrame() {
         setTitle("Konwerter jednostek");
-        setSize(600, 420);
+        setSize(600, 450);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -23,10 +24,12 @@ public class ConverterFrame extends JFrame {
     }
 
     private void initComponents() {
+        setLayout(new BorderLayout(10, 10));
+
+        // ===== PANEL GÓRNY (FORMULARZ) =====
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        // ===== FORMULARZ =====
         JPanel inputPanel = new JPanel(new GridLayout(2, 2, 10, 10));
 
         inputField = new JTextField();
@@ -39,36 +42,48 @@ public class ConverterFrame extends JFrame {
                 "Fahrenheit → Celsjusz"
         });
 
-        inputPanel.add(new JLabel("Wartość:"));
+        inputPanel.add(new JLabel("Wartość wejściowa:"));
         inputPanel.add(inputField);
-        inputPanel.add(new JLabel("Konwersja:"));
+        inputPanel.add(new JLabel("Rodzaj konwersji:"));
         inputPanel.add(unitBox);
 
-        // ===== PRZYCISK =====
         JButton convertButton = new JButton("Przelicz");
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(convertButton);
 
-        // ===== WYNIK =====
         resultLabel = new JLabel("Wynik: ", JLabel.CENTER);
         resultLabel.setFont(new Font("Arial", Font.BOLD, 16));
 
-        // ===== TABELA =====
-        String[] columns = {"Wartość", "Konwersja", "Wynik", "Data"};
+        mainPanel.add(inputPanel, BorderLayout.NORTH);
+        mainPanel.add(buttonPanel, BorderLayout.CENTER);
+        mainPanel.add(resultLabel, BorderLayout.SOUTH);
+
+        // ===== PANEL HISTORII =====
+        JLabel historyLabel = new JLabel("Historia konwersji", JLabel.CENTER);
+        historyLabel.setFont(new Font("Arial", Font.BOLD, 14));
+
+        String[] columns = {
+                "Wartość wejściowa",
+                "Rodzaj konwersji",
+                "Wynik",
+                "Data wykonania"
+        };
+
         tableModel = new DefaultTableModel(columns, 0);
         historyTable = new JTable(tableModel);
         historyTable.setEnabled(false);
 
         JScrollPane tableScrollPane = new JScrollPane(historyTable);
-        tableScrollPane.setPreferredSize(new Dimension(550, 150));
+        tableScrollPane.setPreferredSize(new Dimension(560, 180));
 
-        // ===== SKŁADANIE =====
-        mainPanel.add(inputPanel, BorderLayout.NORTH);
-        mainPanel.add(buttonPanel, BorderLayout.CENTER);
-        mainPanel.add(resultLabel, BorderLayout.SOUTH);
+        JPanel historyPanel = new JPanel(new BorderLayout(5, 5));
+        historyPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 15));
+        historyPanel.add(historyLabel, BorderLayout.NORTH);
+        historyPanel.add(tableScrollPane, BorderLayout.CENTER);
 
+        // ===== DODAWANIE DO OKNA =====
         add(mainPanel, BorderLayout.NORTH);
-        add(tableScrollPane, BorderLayout.CENTER);
+        add(historyPanel, BorderLayout.CENTER);
 
         // ===== OBSŁUGA PRZYCISKU =====
         convertButton.addActionListener(e -> {
