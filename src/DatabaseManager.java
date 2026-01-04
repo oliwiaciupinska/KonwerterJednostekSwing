@@ -1,24 +1,20 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
+import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseManager {
 
     private static final String DB_URL = "jdbc:sqlite:konwerter.db";
 
-    // Połączenie z bazą danych
     public static Connection getConnection() {
         try {
             return DriverManager.getConnection(DB_URL);
         } catch (SQLException e) {
-            throw new RuntimeException("Błąd połączenia z bazą danych", e);
+            throw new RuntimeException("Błąd połączenia z bazą", e);
         }
     }
 
-    // Tworzenie tabeli przy starcie aplikacji
     public static void initDatabase() {
         String sql = """
             CREATE TABLE IF NOT EXISTS conversions (
@@ -36,11 +32,10 @@ public class DatabaseManager {
             stmt.execute(sql);
 
         } catch (Exception e) {
-            throw new RuntimeException("Błąd inicjalizacji bazy danych", e);
+            throw new RuntimeException("Błąd tworzenia tabeli", e);
         }
     }
 
-    // Zapis jednej konwersji do bazy
     public static void saveConversion(double value, String type, double result) {
         String sql = """
             INSERT INTO conversions (value, conversion_type, result, created_at)
@@ -48,19 +43,45 @@ public class DatabaseManager {
             """;
 
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            pstmt.setDouble(1, value);
-            pstmt.setString(2, type);
-            pstmt.setDouble(3, result);
-            pstmt.setString(4, LocalDateTime.now().toString());
-
-            pstmt.executeUpdate();
-
-            System.out.println("Zapisano do bazy");
+            ps.setDouble(1, value);
+            ps.setString(2, type);
+            ps.setDouble(3, result);
+            ps.setString(4, LocalDateTime.now().toString());
+            ps.executeUpdate();
 
         } catch (Exception e) {
-            throw new RuntimeException("Błąd zapisu do bazy danych", e);
+            throw new RuntimeException("Błąd zapisu do bazy", e);
         }
+    }
+
+    public static List<String[]> getAllConversions() {
+        List<String[]> data = new ArrayList<>();
+
+        String sql = """
+            SELECT value, conversion_type, result, created_at
+            FROM conversions
+            ORDER BY id DESC;
+            """;
+
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                data.add(new String[]{
+                        rs.getString("value"),
+                        rs.getString("conversion_type"),
+                        rs.getString("result"),
+                        rs.getString("created_at")
+                });
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Błąd odczytu danych", e);
+        }
+
+        return data;
     }
 }

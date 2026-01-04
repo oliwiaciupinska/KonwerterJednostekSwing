@@ -1,7 +1,6 @@
 public class UnitConverter {
 
     public static double convert(double value, String conversionType) {
-
         return switch (conversionType) {
             case "Metry → Kilometry" -> value / 1000.0;
             case "Kilometry → Metry" -> value * 1000.0;
@@ -16,4 +15,3 @@ public class UnitConverter {
         };
     }
 }
-
