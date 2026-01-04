@@ -97,6 +97,9 @@ public class ConverterFrame extends JFrame {
                 double result = UnitConverter.convert(value, conversionType);
                 resultLabel.setText("Wynik: " + result);
 
+                // ZAPIS DO BAZY
+                DatabaseManager.saveConversion(value, conversionType, result);
+
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(
                         this,
@@ -106,5 +109,6 @@ public class ConverterFrame extends JFrame {
                 );
             }
         });
+
     }
 }
