@@ -111,6 +111,7 @@ public class ConverterFrame extends JFrame {
             tableModel.insertRow(0, new Object[]{value, type, formatted + " " + unit, dateTime});
 
 
+
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Podaj poprawną liczbę");
         }
