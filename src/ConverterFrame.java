@@ -1,19 +1,21 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class ConverterFrame extends JFrame {
 
     private JTextField inputField;
+    private JComboBox<String> conversionBox;
     private JLabel resultLabel;
-    private JComboBox<String> unitBox;
-
     private JTable historyTable;
     private DefaultTableModel tableModel;
 
     public ConverterFrame() {
         setTitle("Konwerter jednostek");
-        setSize(600, 450);
+        setSize(750, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -24,94 +26,137 @@ public class ConverterFrame extends JFrame {
     }
 
     private void initComponents() {
-        setLayout(new BorderLayout(10, 10));
-
-        // ===== PANEL GÓRNY (FORMULARZ) =====
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JPanel inputPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+        // ===== PANEL GÓRNY =====
+        JPanel topPanel = new JPanel(new GridLayout(2, 2, 10, 10));
 
+        topPanel.add(new JLabel("Wartość wejściowa:"));
         inputField = new JTextField();
-        unitBox = new JComboBox<>(new String[]{
+        topPanel.add(inputField);
+
+        topPanel.add(new JLabel("Rodzaj konwersji:"));
+        conversionBox = new JComboBox<>(new String[]{
+                "",
                 "Metry → Kilometry",
                 "Kilometry → Metry",
-                "Kilogramy → Gramy",
                 "Gramy → Kilogramy",
+                "Kilogramy → Gramy",
                 "Celsjusz → Fahrenheit",
                 "Fahrenheit → Celsjusz"
         });
+        topPanel.add(conversionBox);
 
-        inputPanel.add(new JLabel("Wartość wejściowa:"));
-        inputPanel.add(inputField);
-        inputPanel.add(new JLabel("Rodzaj konwersji:"));
-        inputPanel.add(unitBox);
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+
+        // ===== PANEL PRZYCISKÓW =====
+        JPanel buttonPanel = new JPanel();
 
         JButton convertButton = new JButton("Przelicz");
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(convertButton);
+        JButton clearButton = new JButton("Wyczyść");
+        JButton deleteButton = new JButton("Usuń");
+        JButton exitButton = new JButton("Wyjść");
 
+        buttonPanel.add(convertButton);
+        buttonPanel.add(clearButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(exitButton);
+
+        mainPanel.add(buttonPanel, BorderLayout.CENTER);
+
+        // ===== WYNIK =====
         resultLabel = new JLabel("Wynik: ", JLabel.CENTER);
         resultLabel.setFont(new Font("Arial", Font.BOLD, 16));
-
-        mainPanel.add(inputPanel, BorderLayout.NORTH);
-        mainPanel.add(buttonPanel, BorderLayout.CENTER);
         mainPanel.add(resultLabel, BorderLayout.SOUTH);
 
-        // ===== PANEL HISTORII =====
-        JLabel historyLabel = new JLabel("Historia konwersji", JLabel.CENTER);
-        historyLabel.setFont(new Font("Arial", Font.BOLD, 14));
-
-        String[] columns = {
-                "Wartość wejściowa",
-                "Rodzaj konwersji",
-                "Wynik",
-                "Data wykonania"
-        };
-
+        // ===== HISTORIA =====
+        String[] columns = {"Wartość", "Konwersja", "Wynik", "Data i godzina"};
         tableModel = new DefaultTableModel(columns, 0);
         historyTable = new JTable(tableModel);
-        historyTable.setEnabled(false);
 
-        JScrollPane tableScrollPane = new JScrollPane(historyTable);
-        tableScrollPane.setPreferredSize(new Dimension(560, 180));
+        JScrollPane scrollPane = new JScrollPane(historyTable);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Historia konwersji"));
 
-        JPanel historyPanel = new JPanel(new BorderLayout(5, 5));
-        historyPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 15));
-        historyPanel.add(historyLabel, BorderLayout.NORTH);
-        historyPanel.add(tableScrollPane, BorderLayout.CENTER);
-
-        // ===== DODAWANIE DO OKNA =====
         add(mainPanel, BorderLayout.NORTH);
-        add(historyPanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
 
-        // ===== OBSŁUGA PRZYCISKU =====
-        convertButton.addActionListener(e -> {
-            try {
-                double value = Double.parseDouble(inputField.getText());
-                String type = (String) unitBox.getSelectedItem();
+        // ===== AKCJE =====
+        convertButton.addActionListener(e -> convert());
+        clearButton.addActionListener(e -> clearFields());
+        deleteButton.addActionListener(e -> deleteSelectedRow());
+        exitButton.addActionListener(e -> System.exit(0));
+    }
 
-                double result = UnitConverter.convert(value, type);
-                resultLabel.setText("Wynik: " + result);
+    private void convert() {
+        try {
+            double value = Double.parseDouble(inputField.getText());
+            String type = (String) conversionBox.getSelectedItem();
 
-                DatabaseManager.saveConversion(value, type, result);
-                loadHistory();
-
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Podaj poprawną liczbę",
-                        "Błąd",
-                        JOptionPane.ERROR_MESSAGE
-                );
+            if (type == null || type.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Wybierz rodzaj konwersji");
+                return;
             }
-        });
+
+            double result = UnitConverter.convert(value, type);
+            String unit = getResultUnit(type);
+
+            String formatted = String.format("%.2f", result);
+            resultLabel.setText("Wynik: " + formatted + " " + unit);
+
+            String dateTime = LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+
+            DatabaseManager.saveConversion(value, type, result, dateTime);
+            tableModel.insertRow(0, new Object[]{value, type, formatted + " " + unit, dateTime});
+
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Podaj poprawną liczbę");
+        }
+    }
+
+    private void clearFields() {
+        inputField.setText("");
+        conversionBox.setSelectedIndex(0);
+        resultLabel.setText("Wynik: ");
+    }
+
+    private void deleteSelectedRow() {
+        int row = historyTable.getSelectedRow();
+
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Zaznacz rekord do usunięcia");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Czy na pewno usunąć zaznaczony wpis?",
+                "Potwierdzenie",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            DatabaseManager.deleteLast();
+            tableModel.removeRow(row);
+        }
     }
 
     private void loadHistory() {
-        tableModel.setRowCount(0);
-        for (String[] row : DatabaseManager.getAllConversions()) {
+        List<String[]> history = DatabaseManager.getAllConversions();
+        for (String[] row : history) {
             tableModel.addRow(row);
         }
+    }
+
+    private String getResultUnit(String type) {
+        if (type.contains("Metry")) return "m";
+        if (type.contains("Kilometry")) return "km";
+        if (type.contains("Gramy")) return "g";
+        if (type.contains("Kilogramy")) return "kg";
+        if (type.contains("Celsjusz")) return "°C";
+        if (type.contains("Fahrenheit")) return "°F";
+        return "";
     }
 }
